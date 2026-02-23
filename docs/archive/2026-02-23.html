@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NHL Daily Dashboard — 2026-02-23</title>
+<style>
+:root{
+  --bg0:#030610;--bg1:#060b18;
+  --card:rgba(255,255,255,.042);--card2:rgba(255,255,255,.065);
+  --border:rgba(255,255,255,.12);
+  --muted:rgba(255,255,255,.62);--text:rgba(255,255,255,.93);
+  --accent:#a855f7;--accent2:#22d3ee;--accent3:#60a5fa;
+  --pos:#34d399;--neg:#f87171;--neu:#fbbf24;
+  --warn:#ffcc00;
+  --shadow:0 20px 60px rgba(0,0,0,.68);
+  --shadow2:0 10px 34px rgba(0,0,0,.50);
+  --glow1:0 0 22px rgba(168,85,247,.38);
+  --glow2:0 0 26px rgba(34,211,238,.30);
+  --glow3:0 0 20px rgba(96,165,250,.24);
+  --radius:20px;
+}
+html[data-theme="light"]{
+  --bg0:#f4f6ff;--bg1:#fff;
+  --card:rgba(0,0,0,.04);--card2:rgba(0,0,0,.06);
+  --border:rgba(0,0,0,.12);
+  --muted:rgba(0,0,0,.55);--text:rgba(0,0,0,.88);
+  --glow1:none;--glow2:none;--glow3:none;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  color:var(--text);
+  font-family:ui-sans-serif,-apple-system,system-ui,"Segoe UI",Roboto,Arial;
+  font-size:14px;line-height:1.5;
+  background: linear-gradient(180deg,var(--bg0),var(--bg1));
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+.header{
+  position:sticky;top:0;z-index:60;
+  backdrop-filter:blur(18px) saturate(1.4);
+  background:linear-gradient(180deg,rgba(0,0,0,.78),rgba(0,0,0,.30));
+  border-bottom:1px solid rgba(255,255,255,.09);
+  box-shadow:var(--shadow2),var(--glow2);
+}
+html[data-theme="light"] .header{
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.80));
+}
+.header-inner{
+  max-width:1040px;margin:0 auto;
+  padding:12px 16px;
+  display:flex;align-items:center;gap:14px;
+}
+.brand h1{
+  font-size:15px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;text-shadow:var(--glow1);
+}
+.brand .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.pills{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.live-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow:var(--glow1),var(--glow2);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 12px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+  font-size:12px;
+}
+.btn{
+  cursor:pointer;padding:7px 13px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);color:var(--text);
+  font-size:12px;transition:all .15s ease;
+}
+.btn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px);}
+
+/* ── LAYOUT ── */
+.container{max-width:1040px;margin:0 auto;padding:14px 16px;}
+.stack{display:flex;flex-direction:column;gap:14px;}
+
+/* ── SECTION CARDS ── */
+.card{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--radius);
+  padding:16px;
+  background:linear-gradient(160deg,var(--card2),var(--card));
+  box-shadow:var(--shadow),var(--glow3);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(120deg,rgba(168,85,247,.10),rgba(34,211,238,.06),transparent 70%);
+  pointer-events:none;
+}
+.card>*{position:relative;}
+.section-title{
+  font-size:13px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;margin-bottom:12px;
+  text-shadow:var(--glow1);display:flex;align-items:center;gap:8px;
+}
+.section-title::after{
+  content:"";flex:1;height:1px;
+  background:linear-gradient(90deg,var(--border),transparent);
+}
+
+/* ── GAME CARDS (commentary) ── */
+details.game-card{
+  border:1px solid rgba(255,255,255,.10);
+  border-left:3px solid rgba(168,85,247,.60);
+  border-radius:14px;
+  background:rgba(255,255,255,.032);
+  margin:8px 0;
+  transition:background .2s;
+}
+details.game-card[open]{
+  background:rgba(255,255,255,.055);
+  border-left-color:var(--accent2);
+  box-shadow:var(--shadow2),var(--glow2);
+}
+details.game-card>summary{
+  cursor:pointer;list-style:none;padding:10px 14px;
+}
+details.game-card>summary::-webkit-details-marker{display:none;}
+
+.game-summary-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.gsb-matchup{font-size:15px;font-weight:800;letter-spacing:.2px;}
+.gsb-time{color:var(--muted);font-size:13px;}
+.gsb-form{font-size:12px;background:rgba(255,255,255,.06);
+  padding:3px 10px;border-radius:999px;border:1px solid var(--border);}
+.gsb-st{font-size:12px;color:var(--muted);}
+.expand-pill{
+  margin-left:auto;
+  font-size:11px;letter-spacing:.5px;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;
+  border:1px solid rgba(34,211,238,.22);
+  background:rgba(34,211,238,.08);color:var(--accent2);
+}
+
+/* ── GAME DETAIL BODY ── */
+.game-detail-body{padding:10px 14px 14px;}
+.context-row{
+  display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;
+}
+.ctx-chip{
+  font-size:12px;color:var(--muted);
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--border);
+  border-radius:8px;padding:4px 10px;
+}
+.context-note{
+  font-size:12px;color:var(--accent2);
+  background:rgba(34,211,238,.06);
+  border-left:2px solid var(--accent2);
+  padding:6px 10px;border-radius:6px;margin-bottom:10px;
+}
+.spark-row{
+  display:flex;gap:20px;flex-wrap:wrap;margin-bottom:10px;
+  font-size:13px;
+}
+.spark-item{display:flex;align-items:center;gap:8px;}
+.profiles-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;
+}
+@media(max-width:680px){.profiles-row{grid-template-columns:1fr;}}
+.profile-card{
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:12px;padding:10px 12px;font-size:13px;
+}
+.profile-card p{margin:0;line-height:1.55;}
+
+.matchup-edges{
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  border-radius:12px;padding:10px 14px;margin-bottom:10px;
+}
+.edges-title{font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--muted);margin-bottom:8px;}
+.matchup-edges ul{padding-left:16px;font-size:13px;}
+.matchup-edges li{margin:4px 0;}
+
+.keys-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:680px){.keys-row{grid-template-columns:1fr;}}
+.keys-card{
+  background:rgba(255,255,255,.035);border:1px solid var(--border);
+  border-radius:12px;padding:10px 12px;
+}
+.keys-title{font-size:12px;font-weight:700;margin-bottom:6px;color:var(--accent2);}
+.keys-card p{font-size:13px;line-height:1.5;margin:0;}
+
+/* ── RECAP ── */
+.recap-row{
+  border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;margin:8px 0;
+  background:rgba(255,255,255,.03);
+}
+.recap-matchup{
+  display:flex;align-items:center;gap:10px;
+  font-size:14px;margin-bottom:6px;
+}
+.score-badge{
+  font-size:18px;font-weight:900;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.recap-tp{font-size:13px;}
+.badge-event{
+  display:inline-block;padding:2px 8px;border-radius:999px;
+  font-size:11px;font-weight:700;letter-spacing:.4px;
+  background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.30);
+  color:var(--accent);margin-right:4px;
+}
+
+/* ── TABLE ── */
+.table-wrap{
+  width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border-radius:12px;border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.022);
+}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th,.tbl td{
+  padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07);
+  text-align:left;vertical-align:middle;
+}
+.tbl th{
+  position:sticky;top:0;z-index:2;
+  background:rgba(10,15,30,.90);
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.35px;color:var(--muted);
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.tbl tr:hover td{background:rgba(34,211,238,.07);}
+.div-header td{
+  background:rgba(168,85,247,.08)!important;
+  font-size:12px;color:var(--muted);
+  padding:5px 10px;
+}
+
+/* ── RANK BADGES ── */
+.rk{
+  display:inline-block;padding:2px 6px;border-radius:6px;
+  font-size:11px;font-weight:700;letter-spacing:.3px;
+  margin-left:3px;vertical-align:middle;
+}
+.rk-top{background:rgba(52,211,153,.18);color:#34d399;border:1px solid rgba(52,211,153,.30);}
+.rk-mid{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.28);}
+.rk-bot{background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.28);}
+.rk-na{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);}
+
+/* ── LEADER RANKS ── */
+.ldr-rank{
+  display:inline-block;width:22px;height:22px;border-radius:50%;
+  text-align:center;line-height:22px;font-size:11px;font-weight:800;
+  background:rgba(255,255,255,.08);
+}
+.ldr-gold{background:rgba(255,215,0,.18);color:#ffd700;border:1px solid rgba(255,215,0,.35);}
+.ldr-silver{background:rgba(192,192,192,.14);color:#c0c0c0;border:1px solid rgba(192,192,192,.30);}
+.ldr-bronze{background:rgba(205,127,50,.14);color:#cd7f32;border:1px solid rgba(205,127,50,.28);}
+
+/* ── HELPERS ── */
+.pos{color:var(--pos);} .neg{color:var(--neg);} .neu{color:var(--neu);}
+.accent{color:var(--accent2);}
+.muted{color:var(--muted);}
+.small{font-size:12px;color:var(--muted);margin:4px 0 10px;}
+.small-delta{font-size:11px;opacity:.85;}
+b{font-weight:700;}
+h2{font-size:14px;font-weight:700;letter-spacing:.3px;}
+h3{font-size:13px;color:var(--muted);margin:12px 0 6px;}
+
+/* ── BADGE ── */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:3px 10px;border-radius:999px;
+  border:1px solid var(--border);font-size:12px;
+  background:rgba(255,255,255,.05);
+}
+.badge.warn{border-color:rgba(255,204,0,.38);color:#ffe89a;}
+
+/* ── RECAP ENHANCED ── */
+.recap-tbl{
+  width:100%;border-collapse:collapse;font-size:13px;
+  margin:8px 0 10px;
+}
+.recap-tbl th,.recap-tbl td{
+  padding:5px 10px;border:1px solid rgba(255,255,255,.09);
+  text-align:center;
+}
+.recap-tbl th{
+  background:rgba(255,255,255,.06);font-size:11px;
+  text-transform:uppercase;letter-spacing:.3px;color:var(--muted);
+}
+.recap-tbl tr:first-child td{border-top:none;}
+.recap-stat-row{
+  display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px;
+}
+.recap-stat-cell{
+  display:flex;flex-direction:column;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:8px;padding:5px 10px;min-width:100px;
+}
+.recap-stat-label{font-size:10px;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--muted);margin-bottom:2px;}
+.recap-stat-val{font-size:13px;font-weight:700;}
+.turning-pt{margin:4px 0;font-size:13px;}
+.recap-extra{font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <h1>⬡ NHL Daily Dashboard</h1>
+      <div class="sub">2026-02-23 &nbsp;·&nbsp; Updated 9:03 PM ET</div>
+    </div>
+    <div class="pills">
+      <div class="pill"><span class="live-dot"></span> Live build</div>
+      <button class="btn" id="themeBtn" type="button">☀ Theme</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+<div class="stack">
+
+  <div class="card">
+    <div class="section-title">📺 Today's Games — 2026-02-23</div>
+    <div class="small">Click any matchup to expand full analysis · EDGE team-detail + form + rest + head-to-head edges</div>
+    <p class='muted'>No games scheduled today.</p>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📅 Yesterday's Results</div>
+    <div class="small">Turning points from play-by-play — first / tying / go-ahead goal.</div>
+    <div class='recap-row'><div class='recap-matchup'><b>USA @ CAN</b><span class='score-badge'>2–1</span></div><table class='recap-tbl'><thead><tr><th></th><th>P1</th><th>P2</th><th>OT</th><th>F</th></tr></thead><tbody><tr><td><b>USA</b></td><td>1</td><td>0</td><td>1</td><td><b>2</b></td></tr><tr><td><b>CAN</b></td><td>0</td><td>1</td><td>0</td><td><b>1</b></td></tr></tbody></table><div class='recap-stat-row'><div class='recap-stat-cell'><span class='recap-stat-label'>Shots</span><span class='recap-stat-val'>0 — 0</span></div><div class='recap-stat-cell'><span class='recap-stat-label'>USA saves</span><span class='recap-stat-val'>0 (—)</span></div><div class='recap-stat-cell'><span class='recap-stat-label'>CAN saves</span><span class='recap-stat-val'>0 (—)</span></div></div><div class='recap-stat-row'><div class='recap-stat-cell'><span class='recap-stat-label'>USA PP</span><span class='recap-stat-val'>0/2</span></div><div class='recap-stat-cell'><span class='recap-stat-label'>CAN PP</span><span class='recap-stat-val'>1/3</span></div><div class='recap-stat-cell'><span class='recap-stat-label'>Penalties (PIM)</span><span class='recap-stat-val'>USA 3 pen / 6 min &nbsp;·&nbsp; CAN 2 pen / 6 min</span></div></div><div class='recap-tp'><div class='turning-pt'><span class='badge-event'>First goal</span> <b>USA</b> <span class='muted'>(P1 06:00)</span></div><div class='turning-pt'><span class='badge-event'>Tying goal</span> <b>CAN</b> <span class='muted'>(P2 18:16)</span></div><div class='turning-pt'><span class='badge-event'>Go-ahead</span> <b>USA</b> <span class='muted'>(P1 06:00)</span></div></div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">🏒 Standings Snapshot</div>
+    <div class="small">Sorted by conference → division → points.</div>
+    <div class='table-wrap'><table class='tbl'><thead><tr><th>Team</th><th>PTS</th><th>GP</th><th>P%</th><th>Div</th></tr></thead><tbody><tr class='div-header'><td colspan='5'><b>Eastern — Atlantic</b></td></tr><tr><td>TBL</td><td>78</td><td>55</td><td>0.709</td><td class='muted'>Atlantic</td></tr><tr><td>MTL</td><td>72</td><td>57</td><td>0.632</td><td class='muted'>Atlantic</td></tr><tr><td>DET</td><td>72</td><td>58</td><td>0.621</td><td class='muted'>Atlantic</td></tr><tr><td>BUF</td><td>70</td><td>57</td><td>0.614</td><td class='muted'>Atlantic</td></tr><tr><td>BOS</td><td>69</td><td>57</td><td>0.605</td><td class='muted'>Atlantic</td></tr><tr><td>OTT</td><td>63</td><td>57</td><td>0.553</td><td class='muted'>Atlantic</td></tr><tr><td>TOR</td><td>63</td><td>57</td><td>0.553</td><td class='muted'>Atlantic</td></tr><tr><td>FLA</td><td>61</td><td>57</td><td>0.535</td><td class='muted'>Atlantic</td></tr><tr class='div-header'><td colspan='5'><b>Eastern — Metropolitan</b></td></tr><tr><td>CAR</td><td>78</td><td>57</td><td>0.684</td><td class='muted'>Metropolitan</td></tr><tr><td>PIT</td><td>70</td><td>56</td><td>0.625</td><td class='muted'>Metropolitan</td></tr><tr><td>NYI</td><td>69</td><td>58</td><td>0.595</td><td class='muted'>Metropolitan</td></tr><tr><td>CBJ</td><td>65</td><td>56</td><td>0.580</td><td class='muted'>Metropolitan</td></tr><tr><td>WSH</td><td>65</td><td>59</td><td>0.551</td><td class='muted'>Metropolitan</td></tr><tr><td>PHI</td><td>61</td><td>56</td><td>0.545</td><td class='muted'>Metropolitan</td></tr><tr><td>NJD</td><td>58</td><td>57</td><td>0.509</td><td class='muted'>Metropolitan</td></tr><tr><td>NYR</td><td>50</td><td>57</td><td>0.439</td><td class='muted'>Metropolitan</td></tr><tr class='div-header'><td colspan='5'><b>Western — Central</b></td></tr><tr><td>COL</td><td>83</td><td>55</td><td>0.755</td><td class='muted'>Central</td></tr><tr><td>MIN</td><td>78</td><td>58</td><td>0.672</td><td class='muted'>Central</td></tr><tr><td>DAL</td><td>77</td><td>57</td><td>0.675</td><td class='muted'>Central</td></tr><tr><td>UTA</td><td>64</td><td>57</td><td>0.561</td><td class='muted'>Central</td></tr><tr><td>NSH</td><td>59</td><td>57</td><td>0.518</td><td class='muted'>Central</td></tr><tr><td>CHI</td><td>53</td><td>57</td><td>0.465</td><td class='muted'>Central</td></tr><tr><td>WPG</td><td>52</td><td>56</td><td>0.464</td><td class='muted'>Central</td></tr><tr><td>STL</td><td>49</td><td>57</td><td>0.430</td><td class='muted'>Central</td></tr><tr class='div-header'><td colspan='5'><b>Western — Pacific</b></td></tr><tr><td>VGK</td><td>68</td><td>57</td><td>0.596</td><td class='muted'>Pacific</td></tr><tr><td>EDM</td><td>64</td><td>58</td><td>0.552</td><td class='muted'>Pacific</td></tr><tr><td>SEA</td><td>63</td><td>56</td><td>0.562</td><td class='muted'>Pacific</td></tr><tr><td>ANA</td><td>63</td><td>56</td><td>0.562</td><td class='muted'>Pacific</td></tr><tr><td>LAK</td><td>60</td><td>56</td><td>0.536</td><td class='muted'>Pacific</td></tr><tr><td>SJS</td><td>58</td><td>55</td><td>0.527</td><td class='muted'>Pacific</td></tr><tr><td>CGY</td><td>52</td><td>56</td><td>0.464</td><td class='muted'>Pacific</td></tr><tr><td>VAN</td><td>42</td><td>57</td><td>0.368</td><td class='muted'>Pacific</td></tr></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📈 Team Form — Teams Playing Today</div>
+    <div class="small">Last-10 games points% before today. ● W &nbsp; ◑ OTL &nbsp; ● L</div>
+    <div class='table-wrap'><table class='tbl'><thead><tr><th>Team</th><th>Last-10 P%</th><th>Results (W◑L)</th><th>GP</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">🔬 Club Snapshot — EDGE Team Detail</div>
+    <div class="small">Teams playing today · season stats vs league avg (Δ) · color-coded ranks · Source: /v1/edge/team-detail</div>
+    <p class='muted'>No EDGE data available.</p>
+  </div>
+
+  <div class="card">
+    <div class="section-title">⭐ Skater Leaders</div>
+    <h3>Points</h3><div class='table-wrap'><table class='tbl'><thead><tr><th>#</th><th>Player</th><th>Team</th><th>PTS</th></tr></thead><tbody><tr><td><span class='ldr-rank ldr-gold'>1</span></td><td><b>Connor McDavid</b></td><td class='muted'>EDM</td><td><b>96</b></td></tr><tr><td><span class='ldr-rank ldr-silver'>2</span></td><td><b>Nathan MacKinnon</b></td><td class='muted'>COL</td><td><b>93</b></td></tr><tr><td><span class='ldr-rank ldr-bronze'>3</span></td><td><b>Nikita Kucherov</b></td><td class='muted'>TBL</td><td><b>91</b></td></tr><tr><td><span class='ldr-rank '>4</span></td><td><b>Macklin Celebrini</b></td><td class='muted'>SJS</td><td><b>81</b></td></tr><tr><td><span class='ldr-rank '>5</span></td><td><b>Leon Draisaitl</b></td><td class='muted'>EDM</td><td><b>80</b></td></tr><tr><td><span class='ldr-rank '>6</span></td><td><b>David Pastrnak</b></td><td class='muted'>BOS</td><td><b>71</b></td></tr><tr><td><span class='ldr-rank '>7</span></td><td><b>Kirill Kaprizov</b></td><td class='muted'>MIN</td><td><b>70</b></td></tr><tr><td><span class='ldr-rank '>8</span></td><td><b>Mikko Rantanen</b></td><td class='muted'>DAL</td><td><b>69</b></td></tr><tr><td><span class='ldr-rank '>9</span></td><td><b>Mark Scheifele</b></td><td class='muted'>WPG</td><td><b>68</b></td></tr><tr><td><span class='ldr-rank '>10</span></td><td><b>Jack Eichel</b></td><td class='muted'>VGK</td><td><b>68</b></td></tr></tbody></table></div>
+    <h3 style="margin-top:14px">Goals</h3><div class='table-wrap'><table class='tbl'><thead><tr><th>#</th><th>Player</th><th>Team</th><th>G</th></tr></thead><tbody><tr><td><span class='ldr-rank ldr-gold'>1</span></td><td><b>Nathan MacKinnon</b></td><td class='muted'>COL</td><td><b>40</b></td></tr><tr><td><span class='ldr-rank ldr-silver'>2</span></td><td><b>Connor McDavid</b></td><td class='muted'>EDM</td><td><b>34</b></td></tr><tr><td><span class='ldr-rank ldr-bronze'>3</span></td><td><b>Kirill Kaprizov</b></td><td class='muted'>MIN</td><td><b>32</b></td></tr><tr><td><span class='ldr-rank '>4</span></td><td><b>Jason Robertson</b></td><td class='muted'>DAL</td><td><b>32</b></td></tr><tr><td><span class='ldr-rank '>5</span></td><td><b>Matt Boldy</b></td><td class='muted'>MIN</td><td><b>32</b></td></tr><tr><td><span class='ldr-rank '>6</span></td><td><b>Cole Caufield</b></td><td class='muted'>MTL</td><td><b>32</b></td></tr><tr><td><span class='ldr-rank '>7</span></td><td><b>Morgan Geekie</b></td><td class='muted'>BOS</td><td><b>32</b></td></tr><tr><td><span class='ldr-rank '>8</span></td><td><b>Tage Thompson</b></td><td class='muted'>BUF</td><td><b>30</b></td></tr><tr><td><span class='ldr-rank '>9</span></td><td><b>Alex DeBrincat</b></td><td class='muted'>DET</td><td><b>30</b></td></tr><tr><td><span class='ldr-rank '>10</span></td><td><b>Nikita Kucherov</b></td><td class='muted'>TBL</td><td><b>29</b></td></tr></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">🥅 Goalie Leaders</div>
+    <h3>Wins</h3><div class='table-wrap'><table class='tbl'><thead><tr><th>#</th><th>Goalie</th><th>Team</th><th>W</th></tr></thead><tbody><tr><td><span class='ldr-rank ldr-gold'>1</span></td><td><b>Andrei Vasilevskiy</b></td><td class='muted'>TBL</td><td><b>27</b></td></tr><tr><td><span class='ldr-rank ldr-silver'>2</span></td><td><b>Karel Vejmelka</b></td><td class='muted'>UTA</td><td><b>27</b></td></tr><tr><td><span class='ldr-rank ldr-bronze'>3</span></td><td><b>Jake Oettinger</b></td><td class='muted'>DAL</td><td><b>23</b></td></tr><tr><td><span class='ldr-rank '>4</span></td><td><b>Brandon Bussi</b></td><td class='muted'>CAR</td><td><b>23</b></td></tr><tr><td><span class='ldr-rank '>5</span></td><td><b>Jeremy Swayman</b></td><td class='muted'>BOS</td><td><b>22</b></td></tr><tr><td><span class='ldr-rank '>6</span></td><td><b>John Gibson</b></td><td class='muted'>DET</td><td><b>22</b></td></tr><tr><td><span class='ldr-rank '>7</span></td><td><b>Juuse Saros</b></td><td class='muted'>NSH</td><td><b>21</b></td></tr><tr><td><span class='ldr-rank '>8</span></td><td><b>Lukas Dostal</b></td><td class='muted'>ANA</td><td><b>21</b></td></tr><tr><td><span class='ldr-rank '>9</span></td><td><b>Sergei Bobrovsky</b></td><td class='muted'>FLA</td><td><b>21</b></td></tr><tr><td><span class='ldr-rank '>10</span></td><td><b>Filip Gustavsson</b></td><td class='muted'>MIN</td><td><b>20</b></td></tr></tbody></table></div>
+    <h3 style="margin-top:14px">Save %</h3><div class='table-wrap'><table class='tbl'><thead><tr><th>#</th><th>Goalie</th><th>Team</th><th>SV%</th></tr></thead><tbody><tr><td><span class='ldr-rank ldr-gold'>1</span></td><td><b>Devin Cooley</b></td><td class='muted'>CGY</td><td><b>0.921415</b></td></tr><tr><td><span class='ldr-rank ldr-silver'>2</span></td><td><b>Andrei Vasilevskiy</b></td><td class='muted'>TBL</td><td><b>0.919792</b></td></tr><tr><td><span class='ldr-rank ldr-bronze'>3</span></td><td><b>Philipp Grubauer</b></td><td class='muted'>SEA</td><td><b>0.916388</b></td></tr><tr><td><span class='ldr-rank '>4</span></td><td><b>Mackenzie Blackwood</b></td><td class='muted'>COL</td><td><b>0.916084</b></td></tr><tr><td><span class='ldr-rank '>5</span></td><td><b>Ilya Sorokin</b></td><td class='muted'>NYI</td><td><b>0.916008</b></td></tr><tr><td><span class='ldr-rank '>6</span></td><td><b>Jesper Wallstedt</b></td><td class='muted'>MIN</td><td><b>0.914483</b></td></tr><tr><td><span class='ldr-rank '>7</span></td><td><b>Igor Shesterkin</b></td><td class='muted'>NYR</td><td><b>0.913319</b></td></tr><tr><td><span class='ldr-rank '>8</span></td><td><b>Alex Lyon</b></td><td class='muted'>BUF</td><td><b>0.912596</b></td></tr><tr><td><span class='ldr-rank '>9</span></td><td><b>Logan Thompson</b></td><td class='muted'>WSH</td><td><b>0.91215</b></td></tr><tr><td><span class='ldr-rank '>10</span></td><td><b>Dennis Hildeby</b></td><td class='muted'>TOR</td><td><b>0.911937</b></td></tr></tbody></table></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+(function(){
+  const k="nhl_dash_theme";
+  const s=localStorage.getItem(k);
+  if(s) document.documentElement.setAttribute("data-theme",s);
+  const btn=document.getElementById("themeBtn");
+  btn&&btn.addEventListener("click",function(){
+    const c=document.documentElement.getAttribute("data-theme")||"dark";
+    const n=c==="light"?"dark":"light";
+    document.documentElement.setAttribute("data-theme",n);
+    localStorage.setItem(k,n);
+  });
+})();
+</script>
+</body>
+</html>
