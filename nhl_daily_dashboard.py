@@ -11,6 +11,8 @@ Improvements over previous version:
               stat-driven "keys to win", contextual edge phrases
   RELIABILITY — per-endpoint try/except with typed fallbacks, graceful "—"
                everywhere, no uncaught AttributeError on None paths
+  UX       — all secondary sections (recap, standings, form, snapshot, leaders)
+             collapsed by default; Today's Games always open
 
 Outputs:  docs/latest.html  •  docs/archive/YYYY-MM-DD.html
 Deps:     pip install pandas requests
@@ -560,7 +562,6 @@ def team_profile(tri: str, club: Dict, form_pct: Optional[float], rd: Optional[i
 # YESTERDAY RECAP — PBP
 # ═══════════════════════════════════════════════════════
 
-# ── PBP team resolver ──────────────────────────────────
 def _pbp_id_to_tri(pbp: Dict) -> Dict[int, str]:
     out: Dict[int, str] = {}
     for k in ("awayTeam","homeTeam"):
@@ -592,39 +593,24 @@ def _period_label(ev: Dict) -> str:
     if pt == "SO": return "SO"
     return f"P{p} {t}" if p else str(t)
 
-# ── Full PBP stats in one pass ──────────────────────────
 def parse_pbp_stats(game: Dict, pbp: Dict) -> Dict:
-    """
-    Single-pass extraction of:
-      - turning point goals (first / tying / go-ahead / insurance / empty-net)
-      - period-by-period score
-      - shots on goal per team
-      - PP goals and opportunities per team
-      - penalties (count + worst offenders)
-      - goalie saves (derived from shots - goals against)
-    """
     a_tri, h_tri = matchup(game)
     id_to_tri = _pbp_id_to_tri(pbp)
     plays = pbp.get("plays") or []
 
-    # accumulators
-    a_s = h_s = 0                            # running score
-    period_scores: Dict[int, Dict[str,int]] = {}  # {period: {a_tri: g, h_tri: g}}
+    a_s = h_s = 0
+    period_scores: Dict[int, Dict[str,int]] = {}
     shots:    Dict[str, int] = {a_tri: 0, h_tri: 0}
     pp_goals: Dict[str, int] = {a_tri: 0, h_tri: 0}
     pp_opps:  Dict[str, int] = {a_tri: 0, h_tri: 0}
     pen_count:   Dict[str, int] = {a_tri: 0, h_tri: 0}
     pen_minutes: Dict[str, int] = {a_tri: 0, h_tri: 0}
     pen_players: Dict[str, List[str]] = {a_tri: [], h_tri: []}
-    # goalie saves computed post-pass as shots_faced - goals_against
     goals_against: Dict[str, int] = {a_tri: 0, h_tri: 0}
 
-    # goal turning points
     first_goal = tying_goal = go_ahead_goal = None
-    insurance_goals: List[Tuple] = []   # goals that extend lead to 2+
+    insurance_goals: List[Tuple] = []
     empty_net_goals: List[Tuple] = []
-
-    # track PP state: who currently has the man advantage
     current_pp_team: Optional[str] = None
 
     for ev in plays:
@@ -634,29 +620,24 @@ def parse_pbp_stats(game: Dict, pbp: Dict) -> Dict:
         try: pnum = int(pnum)
         except Exception: pnum = 0
 
-        # ── SHOTS ──
         if etype in {"shot-on-goal","sog","505"} or etype == "shot_on_goal":
             if tri in shots: shots[tri] += 1
 
-        # ── PENALTIES ──
         if etype in {"penalty","pen"}:
             if tri in pen_count:
                 pen_count[tri] += 1
-                # penalty minutes: try several field names the API uses
                 mins = (safe_get(ev, ["details","duration"])
                         or safe_get(ev, ["details","penaltyMinutes"])
                         or safe_get(ev, ["details","pimMinutes"])
                         or safe_get(ev, ["details","pim"]))
                 try: pen_minutes[tri] += int(mins)
-                except Exception: pen_minutes[tri] += 2   # assume minor if unknown
+                except Exception: pen_minutes[tri] += 2
                 pname = safe_get(ev, ["details","descKey"]) or ""
                 pen_players[tri].append(str(pname) if pname else "")
-            # track who gets the PP
             opp = h_tri if tri == a_tri else a_tri
             current_pp_team = opp
             if opp in pp_opps: pp_opps[opp] += 1
 
-        # ── GOALS ──
         if etype in {"goal","505"}:
             prev = (a_s, h_s)
             en = bool(safe_get(ev, ["details","emptyNetGoal"])
@@ -667,12 +648,12 @@ def parse_pbp_stats(game: Dict, pbp: Dict) -> Dict:
             if tri == a_tri:
                 a_s += 1
                 goals_against[h_tri] += 1
-                if not pnum in period_scores: period_scores[pnum] = {a_tri:0, h_tri:0}
+                if pnum not in period_scores: period_scores[pnum] = {a_tri:0, h_tri:0}
                 period_scores[pnum][a_tri] = period_scores[pnum].get(a_tri,0) + 1
             elif tri == h_tri:
                 h_s += 1
                 goals_against[a_tri] += 1
-                if not pnum in period_scores: period_scores[pnum] = {a_tri:0, h_tri:0}
+                if pnum not in period_scores: period_scores[pnum] = {a_tri:0, h_tri:0}
                 period_scores[pnum][h_tri] = period_scores[pnum].get(h_tri,0) + 1
             else:
                 continue
@@ -691,7 +672,7 @@ def parse_pbp_stats(game: Dict, pbp: Dict) -> Dict:
 
             if on_pp or current_pp_team == tri:
                 if tri in pp_goals: pp_goals[tri] += 1
-            current_pp_team = None   # PP used up on goal
+            current_pp_team = None
 
     return {
         "a_tri": a_tri, "h_tri": h_tri,
@@ -707,17 +688,14 @@ def parse_pbp_stats(game: Dict, pbp: Dict) -> Dict:
         "empty_net_goals": empty_net_goals,
     }
 
-# ── Render a full recap card from parsed stats ──────────
 def render_recap_card(game: Dict, stats: Dict) -> str:
     a_tri = stats["a_tri"]; h_tri = stats["h_tri"]
     sc    = score_str(game)
 
-    # ── Period-by-period table ───────────────────────────
     ps = stats["period_scores"]
     periods = sorted(ps.keys())
     p_labels = {1:"P1", 2:"P2", 3:"P3", 4:"OT", 5:"SO"}
     th_periods = "".join(f"<th>{p_labels.get(p,f'P{p}')}</th>" for p in periods) + "<th>F</th>"
-    # compute totals from score_str
     try:
         a_total, h_total = sc.split("–")
     except Exception:
@@ -735,11 +713,9 @@ def render_recap_card(game: Dict, stats: Dict) -> str:
         "</tbody></table>"
     ) if periods else ""
 
-    # ── Shots / saves ────────────────────────────────────
     shots = stats["shots"]
     ga    = stats["goals_against"]
     a_sog = shots.get(a_tri, 0); h_sog = shots.get(h_tri, 0)
-    # saves = SOG faced - goals against (crude but no separate goalie endpoint needed)
     a_saves = max(0, h_sog - ga.get(a_tri, 0))
     h_saves = max(0, a_sog - ga.get(h_tri, 0))
     a_svpct = f"{a_saves/h_sog*100:.1f}%" if h_sog else "—"
@@ -756,7 +732,6 @@ def render_recap_card(game: Dict, stats: Dict) -> str:
         "</div>"
     )
 
-    # ── PP ────────────────────────────────────────────────
     ppg = stats["pp_goals"]; ppo = stats["pp_opps"]
     a_pp = f"{ppg.get(a_tri,0)}/{ppo.get(a_tri,0)}"
     h_pp = f"{ppg.get(h_tri,0)}/{ppo.get(h_tri,0)}"
@@ -775,7 +750,6 @@ def render_recap_card(game: Dict, stats: Dict) -> str:
         "</div>"
     )
 
-    # ── Turning points ───────────────────────────────────
     def goal_tag(tag, label: str, extra: str = "") -> str:
         if not tag: return ""
         ev, tri = tag
@@ -797,17 +771,13 @@ def render_recap_card(game: Dict, stats: Dict) -> str:
 
     return (
         f"<div class='recap-row'>"
-        # header
         f"<div class='recap-matchup'>"
         f"<b>{_safe(a_tri)} @ {_safe(h_tri)}</b>"
         f"<span class='score-badge'>{_safe(sc)}</span>"
         f"</div>"
-        # period table
         f"{period_table}"
-        # stat chips
         f"{shots_html}"
         f"{pp_html}"
-        # turning points
         f"<div class='recap-tp'>{tp_html}</div>"
         f"</div>"
     )
@@ -850,7 +820,6 @@ def build_recap(games_yday: List[Dict]) -> str:
 # ═══════════════════════════════════════════════════════
 
 def build_club_snapshot(club_map: Dict[str, Dict]) -> str:
-    """Rich two-column comparison layout for teams playing today."""
     if not club_map:
         return "<p class='muted'>No EDGE data available.</p>"
 
@@ -988,7 +957,6 @@ def build_commentary(
     if not games_today:
         return "<p class='muted'>No games scheduled today.</p>"
 
-    # Build standings P% map
     st_map: Dict[str, float] = {}
     for s in (standings_js.get("standings") or []):
         ta = s.get("teamAbbrev")
@@ -1007,7 +975,6 @@ def build_commentary(
         a_id   = tri_to_id.get(a_tri)
         h_id   = tri_to_id.get(h_tri)
 
-        # Fetch data with error isolation
         a_rd   = rest_days(a_tri, today)
         h_rd   = rest_days(h_tri, today)
         a_fp, a_gp = last10_form(a_tri, today)
@@ -1021,13 +988,11 @@ def build_commentary(
         a_spark  = sparkline_form(a_tri, today)
         h_spark  = sparkline_form(h_tri, today)
 
-        # Flags
         flags = []
         if a_rd == 1: flags.append(f"<span class='badge warn'>⚡ {a_tri} B2B</span>")
         if h_rd == 1: flags.append(f"<span class='badge warn'>⚡ {h_tri} B2B</span>")
         flags_html = " ".join(flags) if flags else ""
 
-        # Head-to-head stat comparison
         compare_items: List[str] = []
         if a_club.get("Status") == "OK" and h_club.get("Status") == "OK":
             compare_items = [
@@ -1040,11 +1005,9 @@ def build_commentary(
                 _stat_edge("Distance skated",  a_tri, h_tri, a_club.get("Dist mi"),     h_club.get("Dist mi"),     True, 2),
             ]
 
-        # Keys to win
         a_keys = keys_to_win(a_tri, h_tri, a_club, h_club, a_rd, a_fp)
         h_keys = keys_to_win(h_tri, a_tri, h_club, a_club, h_rd, h_fp)
 
-        # Summary bar (visible when collapsed)
         a_form_s = f"{a_fp:.0%}" if a_fp is not None else "—"
         h_form_s = f"{h_fp:.0%}" if h_fp is not None else "—"
         a_st_s   = f"{a_st_pct:.3f}" if a_st_pct is not None else "—"
@@ -1065,7 +1028,6 @@ def build_commentary(
             f"</div>"
         )
 
-        # Detail body
         rest_html = ""
         rs_a = _rest_sentence(a_tri, a_rd)
         rs_h = _rest_sentence(h_tri, h_rd)
@@ -1083,26 +1045,21 @@ def build_commentary(
 
         body_html = (
             f"<div class='game-detail-body'>"
-            # Context row
             f"<div class='context-row'>"
             f"<span class='ctx-chip'>Rest: {a_tri} {a_rd if a_rd else '—'}d · {h_tri} {h_rd if h_rd else '—'}d</span>"
             f"<span class='ctx-chip'>EDGE-now: {a_edge_s}</span>"
             f"<span class='ctx-chip'>EDGE-now: {h_edge_s}</span>"
             f"</div>"
             f"{rest_html}"
-            # Form sparklines
             f"<div class='spark-row'>"
             f"<div class='spark-item'><span class='muted'>{a_tri} last 10</span> {a_spark}</div>"
             f"<div class='spark-item'><span class='muted'>{h_tri} last 10</span> {h_spark}</div>"
             f"</div>"
-            # Team profiles
             f"<div class='profiles-row'>"
             f"<div class='profile-card'>{team_profile(a_tri, a_club, a_fp, a_rd)}</div>"
             f"<div class='profile-card'>{team_profile(h_tri, h_club, h_fp, h_rd)}</div>"
             f"</div>"
-            # Matchup edges
             f"{compare_html}"
-            # Keys to win
             f"<div class='keys-row'>"
             f"<div class='keys-card'>"
             f"<div class='keys-title'>🔑 {a_tri} keys to win</div>"
@@ -1260,6 +1217,20 @@ html[data-theme="light"] .header{
   content:"";flex:1;height:1px;
   background:linear-gradient(90deg,var(--border),transparent);
 }
+
+/* ── COLLAPSIBLE SECTION CARDS ── */
+details.card > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px;
+  display: block;
+}
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary .section-title { margin-bottom: 0; }
+details.card[open] > summary {
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+details.card > .card-body { padding: 0 16px 16px; }
 
 /* ── GAME CARDS (commentary) ── */
 details.game-card{
@@ -1490,47 +1461,62 @@ HTML_TEMPLATE = """<!doctype html>
 <div class="container">
 <div class="stack">
 
+  <!-- TODAY'S GAMES — always open -->
   <div class="card">
     <div class="section-title">📺 Today's Games — $date</div>
     <div class="small">Click any matchup to expand full analysis · EDGE team-detail + form + rest + head-to-head edges</div>
     $commentary
   </div>
 
-  <div class="card">
-    <div class="section-title">📅 Yesterday's Results</div>
-    <div class="small">Turning points from play-by-play — first / tying / go-ahead goal.</div>
-    $recap
-  </div>
+  <!-- All sections below are collapsed by default -->
 
-  <div class="card">
-    <div class="section-title">🏒 Standings Snapshot</div>
-    <div class="small">Sorted by conference → division → points.</div>
-    $standings
-  </div>
+  <details class="card">
+    <summary><div class="section-title">📅 Yesterday's Results <span class="expand-pill" style="flex-shrink:0;">Expand ▾</span></div></summary>
+    <div class="card-body">
+      <div class="small" style="margin-top:4px;">Turning points from play-by-play — first / tying / go-ahead goal.</div>
+      $recap
+    </div>
+  </details>
 
-  <div class="card">
-    <div class="section-title">📈 Team Form — Teams Playing Today</div>
-    <div class="small">Last-10 games points% before today. ● W &nbsp; ◑ OTL &nbsp; ● L</div>
-    $team_form
-  </div>
+  <details class="card">
+    <summary><div class="section-title">🏒 Standings Snapshot <span class="expand-pill" style="flex-shrink:0;">Expand ▾</span></div></summary>
+    <div class="card-body">
+      <div class="small" style="margin-top:4px;">Sorted by conference → division → points.</div>
+      $standings
+    </div>
+  </details>
 
-  <div class="card">
-    <div class="section-title">🔬 Club Snapshot — EDGE Team Detail</div>
-    <div class="small">Teams playing today · season stats vs league avg (Δ) · color-coded ranks · Source: /v1/edge/team-detail</div>
-    $club_snapshot
-  </div>
+  <details class="card">
+    <summary><div class="section-title">📈 Team Form — Teams Playing Today <span class="expand-pill" style="flex-shrink:0;">Expand ▾</span></div></summary>
+    <div class="card-body">
+      <div class="small" style="margin-top:4px;">Last-10 games points% before today. ● W &nbsp; ◑ OTL &nbsp; ● L</div>
+      $team_form
+    </div>
+  </details>
 
-  <div class="card">
-    <div class="section-title">⭐ Skater Leaders</div>
-    <h3>Points</h3>$pts_leaders
-    <h3 style="margin-top:14px">Goals</h3>$g_leaders
-  </div>
+  <details class="card">
+    <summary><div class="section-title">🔬 Club Snapshot — EDGE Team Detail <span class="expand-pill" style="flex-shrink:0;">Expand ▾</span></div></summary>
+    <div class="card-body">
+      <div class="small" style="margin-top:4px;">Teams playing today · season stats vs league avg (Δ) · color-coded ranks · Source: /v1/edge/team-detail</div>
+      $club_snapshot
+    </div>
+  </details>
 
-  <div class="card">
-    <div class="section-title">🥅 Goalie Leaders</div>
-    <h3>Wins</h3>$w_leaders
-    <h3 style="margin-top:14px">Save %</h3>$sv_leaders
-  </div>
+  <details class="card">
+    <summary><div class="section-title">⭐ Skater Leaders <span class="expand-pill" style="flex-shrink:0;">Expand ▾</span></div></summary>
+    <div class="card-body">
+      <h3 style="margin-top:8px;">Points</h3>$pts_leaders
+      <h3 style="margin-top:14px;">Goals</h3>$g_leaders
+    </div>
+  </details>
+
+  <details class="card">
+    <summary><div class="section-title">🥅 Goalie Leaders <span class="expand-pill" style="flex-shrink:0;">Expand ▾</span></div></summary>
+    <div class="card-body">
+      <h3 style="margin-top:8px;">Wins</h3>$w_leaders
+      <h3 style="margin-top:14px;">Save %</h3>$sv_leaders
+    </div>
+  </details>
 
 </div>
 </div>
@@ -1558,8 +1544,7 @@ HTML_TEMPLATE = """<!doctype html>
 # ═══════════════════════════════════════════════════════
 
 def main():
-    # Ensure stdout handles Unicode on Windows (cp1252 default console)
-    import sys, io
+    import sys
     if hasattr(sys.stdout, "reconfigure"):
         try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         except Exception: pass
@@ -1579,7 +1564,6 @@ def main():
 
     print(f"[NHL Dashboard] date={today} season={season}")
 
-    # ── Core data ──
     print("  fetching standings...")
     standings_js = fetch_standings()
     tri_to_id    = {**tri_to_id_map(standings_js)}
@@ -1597,14 +1581,12 @@ def main():
         if a: teams_today.append(a)
         if h: teams_today.append(h)
 
-    # ── EDGE detail (pre-fetch for teams playing) ──
     print("  fetching EDGE detail...")
     club_map: Dict[str, Dict] = {}
     for tri in sorted(set(teams_today)):
         tid = tri_to_id.get(tri)
         club_map[tri] = get_edge_detail(tri, tid, season, args.game_type)
 
-    # ── Build sections ──
     print("  building commentary...")
     commentary_html = build_commentary(
         games_today, today, tri_to_id, standings_js, season
@@ -1628,7 +1610,6 @@ def main():
     w_html   = leaders_html("wins",     "W",   fetch_goalie_leaders, "wins",     True)
     sv_html  = leaders_html("savePctg", "SV%", fetch_goalie_leaders, "savePctg", True)
 
-    # ── Render ──
     html = Template(HTML_TEMPLATE).substitute(
         date=today.isoformat(),
         updated=updated,
